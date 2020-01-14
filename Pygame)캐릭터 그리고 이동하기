@@ -25,7 +25,7 @@ def runGame():
     global gamepad, clock, background,player
     crashed=False
 
-    # 전투기 크기
+    # 전투기 크기 설정
     player_size = player.get_rect().size
     player_width = player_size[0]
     player_height = player_size[1]
