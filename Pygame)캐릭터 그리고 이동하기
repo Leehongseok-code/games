@@ -1,0 +1,69 @@
+import pygame
+import torch
+
+BLACK=(0,0,0)
+WHITE=(255,255,255)
+pad_width=480
+pad_height=640
+
+def drawObject(obj,x,y):
+    global gamepad
+    gamepad.blit(obj,(x,y))
+
+
+def initGame():
+    global gamepad,clock,background,player
+    pygame.init()
+    gamepad=pygame.display.set_mode((pad_width,pad_height))
+    pygame.display.set_caption('test')
+    background=pygame.image.load('resources/background.png')
+    player=pygame.image.load('resources/fighter.png')
+    clock=pygame.time.Clock()
+    runGame()
+
+def runGame():
+    global gamepad, clock, background,player
+    crashed=False
+
+    # 전투기 크기
+    player_size = player.get_rect().size
+    player_width = player_size[0]
+    player_height = player_size[1]
+    # print(player_width,',',player_height)
+
+    # 전투기 초기 위치(x,y)
+    player_x = pad_width * 0.45
+    player_y = pad_height * 0.9
+    move_x=0
+
+    while not crashed:
+        for event in pygame.event.get():
+            if event.type==pygame.QUIT:
+                crashed=True
+            if event.type in [pygame.KEYDOWN]:
+                if event.key==pygame.K_LEFT:
+                    move_x-=5
+                elif event.key==pygame.K_RIGHT:
+                    move_x+=5
+            if event.type in [pygame.KEYUP]:
+                if event.key==pygame.K_LEFT or event.key==pygame.K_RIGHT:
+                    move_x=0
+        player_x+=move_x #전투기 이동
+
+        #전투기가 화면을 빠져나가지 않도록 보정
+        if player_x<0:
+            player_x=0
+        elif player_x>pad_width-player_width:
+            player_x=pad_width-player_width
+
+        gamepad.fill(WHITE)
+        drawObject(background,0,0)
+
+        drawObject(player,player_x,player_y)
+        pygame.display.update()
+
+    pygame.quit()
+
+
+
+initGame()
