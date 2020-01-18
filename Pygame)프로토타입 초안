@@ -1,0 +1,185 @@
+import pygame
+import torch
+import random
+from time import sleep
+
+BLACK=(0,0,0)
+WHITE=(255,255,255)
+pad_width=480
+pad_height=640
+rockImage=['resources/rock01.png','resources/rock02.png','resources/rock03.png',
+           'resources/rock04.png','resources/rock05.png','resources/rock06.png']
+def collisioncheck(x,y,size):
+    return 0
+
+def drawObject(obj,x,y):
+    global gamepad
+    gamepad.blit(obj,(x,y))
+
+def writeScore(count):
+    global gamepad
+    font=pygame.font.Font('resources/NanumGothic.ttf',20)
+    text=font.render('파괴한 운석 수:'+str(count),True,(255,255,255))
+    gamepad.blit(text,(10,0))
+
+def  writePassed(count):
+    global gamepad
+    font=pygame.font.Font('resources/NanumGothic.ttf',20)
+    text=font.render('놓친 운석:'+str(count),True,(255,0,0))
+    gamepad.blit(text,(350,0))
+
+def writeMessage(text):
+    global gamepad
+    textfont=pygame.font.Font('resources/NanumGothic.ttf',80)
+    text=textfont.render(text,True,(255,0,0))
+    textpos=text.get_rect()
+    textpos.center=(pad_width/2,pad_height/2)
+    gamepad.blit(text,textpos)
+    pygame.display.update()
+    sleep(2)
+    runGame()
+
+def crash():
+    global gamepad
+    writeMessage('전투기 파괴!')
+
+def initGame():
+    global gamepad,clock,background,player,missile,explosion
+    pygame.init()
+    gamepad=pygame.display.set_mode((pad_width,pad_height))
+    pygame.display.set_caption('test')
+    background=pygame.image.load('resources/background.png')
+    player=pygame.image.load('resources/fighter.png')
+    missile=pygame.image.load('resources/missile.png')
+    explosion=pygame.image.load('resources/explosion.png')
+    clock=pygame.time.Clock()
+    runGame()
+
+def runGame():
+    global gamepad, clock, background,player,missile,explosion
+    crashed=False
+
+    #전투기 미사일에 운석이 맞았을 경우 True
+    isShot=True
+    shotCount=0
+    rockPassed=0
+
+    # 전투기 크기
+    player_size = player.get_rect().size
+    player_width = player_size[0]
+    player_height = player_size[1]
+    # print(player_width,',',player_height)
+
+    #미사일 크기
+    missile_size=missile.get_rect().size
+    missile_width=missile_size[0]
+    missile_height=missile_size[1]
+
+    # 전투기 초기 위치(x,y)
+    player_x = pad_width * 0.45
+    player_y = pad_height * 0.9
+    move_x=0
+    #무기 좌표 리스트
+    missile_xy=[]
+
+    #운석 랜덤 생성
+    rock=pygame.image.load(random.choice(rockImage))
+    rockSize=rock.get_rect().size
+    rock_width=rockSize[0]
+    rock_height=rockSize[1]
+
+    #운석 초기 위치 선정
+    rock_x=random.randrange(0,pad_width-rock_width)
+    rock_y=0
+    rockSpeed=2
+
+    while not crashed:
+        for event in pygame.event.get():
+            if event.type==pygame.QUIT:
+                crashed=True
+            if event.type in [pygame.KEYDOWN]:
+                if event.key==pygame.K_LEFT:
+                    move_x-=5
+                elif event.key==pygame.K_RIGHT:
+                    move_x+=5
+                elif event.key==pygame.K_SPACE:
+                    missile_x=player_x+player_width/2
+                    missile_y=player_y-player_height
+                    #미사일 생성위치 보정
+                    missile_xy.append([missile_x-missile_width/2,missile_y+missile_height])
+            if event.type in [pygame.KEYUP]:
+                if event.key==pygame.K_LEFT or event.key==pygame.K_RIGHT:
+                    move_x=0
+        player_x+=move_x #전투기 이동
+
+        #전투기가 화면을 빠져나가지 않도록 보정
+        if player_x<0:
+            player_x=0
+        elif player_x>pad_width-player_width:
+            player_x=pad_width-player_width
+
+        gamepad.fill(WHITE)
+        drawObject(background,0,0)
+
+        # 운석과 충돌하면 게임오버
+        if player_y < rock_y + rock_height:
+            if(rock_x<player_x and rock_x+player_width>player_x):
+                    crash()
+
+
+        drawObject(player,player_x,player_y)
+
+        #미사일 발사 화면에 그리기
+        if len(missile_xy)!=0:
+            for i,bxy in enumerate(missile_xy):#미사일 요소에 대해 반복함
+                bxy[1]-=10
+                missile_xy[i][1]=bxy[1]
+
+                if bxy[1]<rock_y:
+                    if bxy[0]>rock_x and bxy[0]<rock_x+rock_width:
+                        missile_xy.remove(bxy)
+                        isShot=True
+                        shotCount+=1
+                if bxy[1]<=0:#미사일이 화면을 벗어나면 제거
+                    try:
+                        missile_xy.remove(bxy)
+                    except:
+                        pass
+                if isShot:#운석을 맞췄을 때
+                    #운석 폭발
+                    drawObject(explosion,rock_x,rock_y)
+                    #새로운 운석
+                    rock = pygame.image.load(random.choice(rockImage))
+                    rockSize = rock.get_rect().size
+                    rock_width = rockSize[0]
+                    rock_height = rockSize[1]
+                    rock_x = random.randrange(0, pad_width - rock_width)
+                    rock_y = 0
+                    isShot=False
+                    if rockSpeed<=10:
+                        rockSpeed+=0.2
+        if len(missile_xy)!=0:
+            for bx,by in missile_xy:
+                drawObject(missile,bx,by)
+
+        rock_y+=rockSpeed
+        #운석이 지구로 떨어진 경우
+        if rock_y>pad_width+rock_height*2:
+            #새로운 운석
+            rock = pygame.image.load(random.choice(rockImage))
+            rockSize = rock.get_rect().size
+            rock_width = rockSize[0]
+            rock_height = rockSize[1]
+            rock_x=random.randrange(0,pad_width-rock_width)
+            rock_y=0
+            rockPassed+=1
+        drawObject(rock,rock_x,rock_y)
+        writePassed(rockPassed)
+        writeScore(shotCount)
+        pygame.display.update()
+
+    pygame.quit()
+
+
+
+initGame()
